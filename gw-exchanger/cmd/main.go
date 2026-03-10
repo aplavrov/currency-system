@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log"
 	"log/slog"
@@ -16,6 +17,7 @@ import (
 	"github.com/aplavrov/currency-system/gw-exchanger/internal/storage/postgresql"
 	_ "github.com/jackc/pgx/v4/stdlib"
 	"github.com/joho/godotenv"
+	"github.com/pressly/goose/v3"
 	"google.golang.org/grpc"
 )
 
@@ -41,6 +43,17 @@ func main() {
 		os.Exit(1)
 	}
 	defer dbPool.GetPool().Close()
+
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable", cfg.Storage.PostgresHost, cfg.Storage.PostgresPort, cfg.Storage.PostgresUsername, cfg.Storage.PostgresPassword, cfg.Storage.PostgresDatabase)
+	sqlDB, err := sql.Open("pgx", dsn)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer sqlDB.Close()
+
+	if err := goose.Up(sqlDB, "internal/storage/migrations"); err != nil {
+		log.Fatal(err)
+	}
 
 	logger.Info("db connected")
 

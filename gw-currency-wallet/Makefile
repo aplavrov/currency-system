@@ -1,7 +1,7 @@
-APP_NAME := ExchangeService
+APP_NAME := WalletService
 
 ifeq ($(POSTGRES_SETUP),)
-	POSTGRES_SETUP := user=exchange-user password=exchange-password dbname=exchange-db host=localhost port=5432 sslmode=disable
+	POSTGRES_SETUP := user=wallet-user password=wallet-password dbname=wallet-db host=localhost port=5432 sslmode=disable
 endif
 
 INTERNAL_PATH=$(CURDIR)/internal/storage

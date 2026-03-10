@@ -1,0 +1,96 @@
+services:
+  postgres:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: >
+        sh -c "
+          pg_isready -U wallet-user -d wallet-db -h localhost &&
+          pg_isready -U exchange-user -d exchange-db -h localhost
+        "
+      interval: 2s
+      timeout: 2s
+      retries: 10
+    volumes:
+      - ./postgres/init:/docker-entrypoint-initdb.d
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:29092,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+
+      KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    depends_on:
+      - kafka
+    ports:
+      - "8081:8080"
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:29092
+
+  gw-exchanger:
+    build: ./gw-exchanger
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+    ports:
+      - "50051:50051"
+    restart: on-failure
+
+  gw-currency-wallet:
+    build: ./gw-currency-wallet
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    environment:
+      DB_HOST: postgres
+      KAFKA_BROKER: kafka:29092
+    ports:
+      - "9000:9000"
+    restart: on-failure
+
+  gw-notification:
+    build: ./gw-notification
+    depends_on:
+      kafka:
+        condition: service_started
+      mongodb:
+        condition: service_started
+    environment:
+      MONGO_HOST: mongodb
+      KAFKA_BROKER: kafka:29092

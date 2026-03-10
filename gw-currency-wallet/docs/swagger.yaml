@@ -1,0 +1,346 @@
+basePath: /api/v1
+definitions:
+  delivery.BalanceResponse:
+    properties:
+      balance:
+        $ref: '#/definitions/service.Balance'
+    type: object
+  delivery.DepositRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+    type: object
+  delivery.ExchangeRequest:
+    properties:
+      amount:
+        type: number
+      from_currency:
+        type: string
+      to_currency:
+        type: string
+    type: object
+  delivery.ExchangeResponse:
+    properties:
+      exchanged_amount:
+        type: number
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/service.Balance'
+    type: object
+  delivery.LoginRequest:
+    properties:
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  delivery.RatesResponse:
+    properties:
+      rates:
+        $ref: '#/definitions/service.Rates'
+    type: object
+  delivery.RegisterRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  delivery.WalletOperationResponse:
+    properties:
+      message:
+        type: string
+      new_balance:
+        $ref: '#/definitions/service.Balance'
+    type: object
+  delivery.WithdrawRequest:
+    properties:
+      amount:
+        type: number
+      currency:
+        type: string
+    type: object
+  service.Balance:
+    additionalProperties:
+      format: float64
+      type: number
+    type: object
+  service.Rates:
+    additionalProperties:
+      format: float32
+      type: number
+    type: object
+host: localhost:9000
+info:
+  contact: {}
+  description: API for wallet and currency exchange
+  title: Currency Wallet API
+  version: "1.0"
+paths:
+  /balance:
+    get:
+      description: Returns balances for all currencies of the authenticated user's
+        wallet
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Wallet balance
+          schema:
+            $ref: '#/definitions/delivery.BalanceResponse'
+        "404":
+          description: Wallet not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get wallet balance
+      tags:
+      - Wallet
+  /exchange:
+    post:
+      consumes:
+      - application/json
+      description: Convert amount from one currency to another for the authenticated
+        user's wallet
+      parameters:
+      - description: Exchange Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/delivery.ExchangeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Exchange successful, new balances returned
+          schema:
+            $ref: '#/definitions/delivery.ExchangeResponse'
+        "400":
+          description: Insufficient funds or invalid currencies
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Wallet not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Exchange currencies
+      tags:
+      - Exchange
+  /exchange/rates:
+    get:
+      description: Get current exchange rates for supported currencies
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Exchange rates returned
+          schema:
+            $ref: '#/definitions/delivery.RatesResponse'
+        "500":
+          description: Failed to retrieve exchange rates
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Get exchange rates
+      tags:
+      - Exchange
+  /login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token
+      parameters:
+      - description: Login Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/delivery.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: JWT token returned
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Invalid JSON / missing fields
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "401":
+          description: Invalid username or password
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Login user
+      tags:
+      - Auth
+  /register:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user account with username, password, and email
+      parameters:
+      - description: Register Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/delivery.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: User registered successfully
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad request / Username or email exists
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Register a new user
+      tags:
+      - Auth
+  /wallet/deposit:
+    post:
+      consumes:
+      - application/json
+      description: Deposit amount to the specified currency in the authenticated user's
+        wallet
+      parameters:
+      - description: Deposit Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/delivery.DepositRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Deposit successful, new balances returned
+          schema:
+            $ref: '#/definitions/delivery.WalletOperationResponse'
+        "400":
+          description: Invalid amount or currency
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Wallet not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Deposit funds to wallet
+      tags:
+      - Wallet
+  /wallet/withdraw:
+    post:
+      consumes:
+      - application/json
+      description: Withdraw amount from the specified currency in the authenticated
+        user's wallet
+      parameters:
+      - description: Withdraw Request
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/delivery.WithdrawRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Withdrawal successful, new balances returned
+          schema:
+            $ref: '#/definitions/delivery.WalletOperationResponse'
+        "400":
+          description: Insufficient funds or invalid amount
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Wallet not found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      security:
+      - ApiKeyAuth: []
+      summary: Withdraw funds from wallet
+      tags:
+      - Wallet
+securityDefinitions:
+  ApiKeyAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
