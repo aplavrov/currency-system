@@ -18,7 +18,7 @@ docker-compose up --build
 * mongodb — используется для хранения полученных сообщений о больших транзакциях в сервисе **gw-notification**
 * gw-currency-wallet, gw-exchanger, gw-notification — сервисы
 
-Работа с системой устроена через REST с сервисом **gw-currency-wallet** по адресу:
+Взаимодействие с системой устроено по REST на сервисе **gw-currency-wallet** по адресу:
 
 ```
 http://localhost:9000
